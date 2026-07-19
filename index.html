@@ -153,7 +153,6 @@
     display: flex; align-items: center; gap: 10px;
   }
   .citem:active { background: var(--card2); }
-  .qr-holder { background: #fff; border-radius: 16px; padding: 14px; margin: 16px auto 0; width: fit-content; }
   .close-btn {
     margin-top: 16px; background: var(--card2); color: var(--text); border: 1px solid #2a3459;
     border-radius: 12px; padding: 13px; font-size: 15px; font-weight: 700; cursor: pointer; width: 100%;
@@ -197,7 +196,7 @@
     <div id="polls"></div>
   </div>
 
-  <button class="share-btn" id="btnshare">📲 Show QR — get friends in</button>
+  <button class="share-btn" id="btnshare">📲 AirDrop this to the crowd</button>
 
   <footer>
     no signup · no server · open source<br>
@@ -215,18 +214,7 @@
   </div>
 </div>
 
-<!-- QR overlay -->
-<div class="overlay hidden" id="qro">
-  <div class="sheet" style="text-align:center">
-    <h1>Scan to join 📲</h1>
-    <p>Point a camera here — they're in, in 5 seconds.</p>
-    <div class="qr-holder"><div id="qrcode"></div></div>
-    <button class="close-btn" id="qrclose">Close</button>
-  </div>
-</div>
-
 <script src="https://cdn.jsdelivr.net/npm/mqtt@5.10.1/dist/mqtt.min.js"></script>
-<script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs@master/qrcode.min.js"></script>
 <script>
 "use strict";
 
@@ -476,16 +464,19 @@ $("csearch").addEventListener("input", e => renderCountryList(e.target.value));
 renderCountryList("");
 if (myCountry) { pins[myId] = myCountry; renderWall(); $("join").classList.add("hidden"); }
 
-/* ---------------- QR share ---------------- */
-let qrMade = false;
-$("btnshare").addEventListener("click", () => {
-  $("qro").classList.remove("hidden");
-  if (!qrMade && window.QRCode) {
-    new QRCode($("qrcode"), { text: location.href, width: 200, height: 200, correctLevel: QRCode.CorrectLevel.M });
-    qrMade = true;
-  }
+/* ---------------- share (AirDrop via native share sheet) ---------------- */
+$("btnshare").addEventListener("click", async () => {
+  const url = location.href.split("#")[0];
+  try {
+    if (navigator.share) {
+      await navigator.share({ title: "Fan Park · ARG vs ESP", text: "Cheer with the crowd — World Cup Final 🏆", url });
+    } else {
+      await navigator.clipboard.writeText(url);
+      $("btnshare").textContent = "✅ Link copied";
+      setTimeout(() => { $("btnshare").textContent = "📲 AirDrop this to the crowd"; }, 1800);
+    }
+  } catch (e) { /* user closed the sheet */ }
 });
-$("qrclose").addEventListener("click", () => $("qro").classList.add("hidden"));
 
 /* ---------------- go ---------------- */
 connect();
