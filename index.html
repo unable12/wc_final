@@ -88,6 +88,23 @@
   .flagchip b { font-size: 13px; color: var(--muted); }
   @keyframes pop { from { transform: scale(.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
+  /* Polls */
+  .poll { margin-top: 16px; }
+  .poll .q { font-size: 15px; font-weight: 800; margin-bottom: 8px; }
+  .popt {
+    position: relative; display: flex; justify-content: space-between; align-items: center;
+    background: var(--card2); border: 1px solid #2a3459; border-radius: 12px;
+    padding: 11px 12px; margin-bottom: 7px; font-size: 14px; font-weight: 600;
+    cursor: pointer; overflow: hidden; transition: border-color .2s;
+  }
+  .popt.mine { border-color: var(--gold); }
+  .popt .fill {
+    position: absolute; inset: 0; background: rgba(245,197,66,.13);
+    transform-origin: left; transform: scaleX(0); transition: transform .5s ease;
+  }
+  .popt span, .popt b { position: relative; }
+  .popt b { color: var(--muted); font-size: 13px; }
+
   .share-btn {
     width: 100%; margin-top: 16px; background: var(--gold); color: #221a00;
     border: none; border-radius: 16px; padding: 16px; font-size: 16px; font-weight: 800; cursor: pointer;
@@ -175,6 +192,11 @@
     <div class="flags" id="flags"></div>
   </div>
 
+  <div class="card">
+    <h2>📊 Crowd polls</h2>
+    <div id="polls"></div>
+  </div>
+
   <button class="share-btn" id="btnshare">📲 Show QR — get friends in</button>
 
   <footer>
@@ -216,6 +238,12 @@ const BROKERS = [                            // public brokers, tried in order
   "wss://test.mosquitto.org:8081/mqtt",
 ];
 const CHANTS = ["GOOOOOL! ⚽", "VAMOS 🇦🇷", "¡OLÉ! 🇪🇸", "😱😱😱", "What a save! 🧤", "OLE OLE OLE 🎶", "🍿", "❤️ from the park"];
+const POLLS = [
+  { id: "side",  q: "Who are you rooting for?",   opts: ["🇦🇷 Argentina", "🇪🇸 Spain", "🍿 Just here for the football"] },
+  { id: "end",   q: "How does it end?",           opts: ["🇦🇷 win in 90'", "🇪🇸 win in 90'", "Extra time", "Penalties 😬"] },
+  { id: "goals", q: "Total goals today?",         opts: ["0–1", "2–3", "4+"] },
+  { id: "where", q: "Where are you watching?",    opts: ["🌳 Central Park", "🍺 A bar", "🛋️ Home", "🏟️ MetLife"] },
+];
 
 /* ---------------- countries ---------------- */
 const COUNTRIES = ("AR:Argentina,ES:Spain,US:United States,MX:Mexico,BR:Brazil,CO:Colombia,PE:Peru,CL:Chile,UY:Uruguay,EC:Ecuador,VE:Venezuela,BO:Bolivia,PY:Paraguay,CR:Costa Rica,PA:Panama,GT:Guatemala,HN:Honduras,SV:El Salvador,NI:Nicaragua,DO:Dominican Republic,CU:Cuba,JM:Jamaica,HT:Haiti,TT:Trinidad & Tobago,CA:Canada,GB:United Kingdom,IE:Ireland,FR:France,DE:Germany,IT:Italy,PT:Portugal,NL:Netherlands,BE:Belgium,CH:Switzerland,AT:Austria,PL:Poland,UA:Ukraine,RO:Romania,CZ:Czechia,SK:Slovakia,HU:Hungary,GR:Greece,SE:Sweden,NO:Norway,DK:Denmark,FI:Finland,IS:Iceland,HR:Croatia,RS:Serbia,BA:Bosnia,SI:Slovenia,MK:North Macedonia,AL:Albania,BG:Bulgaria,TR:Türkiye,RU:Russia,GE:Georgia,AM:Armenia,IL:Israel,PS:Palestine,LB:Lebanon,JO:Jordan,SY:Syria,IQ:Iraq,IR:Iran,SA:Saudi Arabia,AE:UAE,QA:Qatar,KW:Kuwait,BH:Bahrain,OM:Oman,YE:Yemen,EG:Egypt,MA:Morocco,DZ:Algeria,TN:Tunisia,LY:Libya,SN:Senegal,CI:Ivory Coast,GH:Ghana,NG:Nigeria,CM:Cameroon,CD:DR Congo,ET:Ethiopia,KE:Kenya,TZ:Tanzania,UG:Uganda,ZA:South Africa,ZW:Zimbabwe,AO:Angola,MZ:Mozambique,ML:Mali,BF:Burkina Faso,GN:Guinea,CV:Cape Verde,GM:Gambia,TG:Togo,BJ:Benin,NE:Niger,TD:Chad,SD:Sudan,RW:Rwanda,ZM:Zambia,IN:India,PK:Pakistan,BD:Bangladesh,LK:Sri Lanka,NP:Nepal,CN:China,JP:Japan,KR:South Korea,TW:Taiwan,HK:Hong Kong,PH:Philippines,ID:Indonesia,MY:Malaysia,SG:Singapore,TH:Thailand,VN:Vietnam,KH:Cambodia,MM:Myanmar,UZ:Uzbekistan,KZ:Kazakhstan,AZ:Azerbaijan,AU:Australia,NZ:New Zealand,FJ:Fiji,LT:Lithuania,LV:Latvia,EE:Estonia,BY:Belarus,MD:Moldova,ME:Montenegro,XK:Kosovo,LU:Luxembourg,MT:Malta,CY:Cyprus,AF:Afghanistan,MN:Mongolia,LA:Laos,BT:Bhutan,MV:Maldives,BN:Brunei,PG:Papua New Guinea,SR:Suriname,GY:Guyana,BZ:Belize,BS:Bahamas,BB:Barbados,LC:St. Lucia,GD:Grenada,MU:Mauritius,MG:Madagascar,NA:Namibia,BW:Botswana,GA:Gabon,CG:Congo,SL:Sierra Leone,LR:Liberia,MR:Mauritania,SO:Somalia,ER:Eritrea,DJ:Djibouti,SS:South Sudan,MW:Malawi,LS:Lesotho,SZ:Eswatini")
@@ -233,6 +261,8 @@ let myCountry = localStorage.getItem("fp-country") || null;
 let client = null, connected = false, brokerIdx = 0;
 const taps = {};                 // clientId -> {a, e}
 const pins = {};                 // clientId -> country code
+const votes = {};                // pollId -> { clientId -> optionIndex }
+let myVotes = JSON.parse(localStorage.getItem("fp-votes") || "{}");
 let myTaps = { a: 0, e: 0 };
 let tapsDirty = false;
 
@@ -296,9 +326,10 @@ function connect() {
 
   client.on("connect", () => {
     setStatus(true, "live");
-    client.subscribe([NS + "/taps/#", NS + "/pins/#", NS + "/burst", NS + "/chant"]);
+    client.subscribe([NS + "/taps/#", NS + "/pins/#", NS + "/vote/#", NS + "/burst", NS + "/chant"]);
     if (myCountry) publishPin();
     if (myTaps.a || myTaps.e) publishTaps();
+    for (const qid in myVotes) publishVote(qid);
   });
 
   let dead = false;
@@ -323,6 +354,14 @@ function connect() {
       } else if (t.startsWith("pins/")) {
         const code = String(payload).slice(0, 2).toUpperCase();
         if (/^[A-Z]{2}$/.test(code)) { pins[t.slice(5)] = code; renderWall(); }
+      } else if (t.startsWith("vote/")) {
+        const [qid, cid] = t.slice(5).split("/");
+        const poll = POLLS.find(p => p.id === qid);
+        const idx = parseInt(payload, 10);
+        if (poll && cid && idx >= 0 && idx < poll.opts.length) {
+          (votes[qid] = votes[qid] || {})[cid] = idx;
+          renderPolls();
+        }
       } else if (t === "burst") {
         const d = JSON.parse(payload);
         if (d.id !== myId) floatUp(d.t === "a" ? "🇦🇷" : "🇪🇸", false);
@@ -338,6 +377,7 @@ function pub(topic, payload, retain) {
   if (client && connected) client.publish(NS + "/" + topic, payload, { retain: !!retain, qos: 0 });
 }
 function publishPin()  { pub("pins/" + myId, myCountry, true); }
+function publishVote(qid) { pub("vote/" + qid + "/" + myId, String(myVotes[qid]), true); }
 function publishTaps() { pub("taps/" + myId, JSON.stringify(myTaps), true); tapsDirty = false; }
 setInterval(() => { if (tapsDirty) publishTaps(); }, 600);
 
@@ -372,6 +412,44 @@ for (const c of CHANTS) {
   });
   $("chants").appendChild(b);
 }
+
+/* ---------------- polls ---------------- */
+function renderPolls() {
+  const host = $("polls");
+  for (const poll of POLLS) {
+    let el = document.getElementById("poll-" + poll.id);
+    if (!el) {
+      el = document.createElement("div");
+      el.className = "poll"; el.id = "poll-" + poll.id;
+      el.innerHTML = "<div class='q'>" + poll.q + "</div>" + poll.opts.map((o, i) =>
+        "<div class='popt' data-i='" + i + "'><div class='fill'></div><span>" + o + "</span><b></b></div>"
+      ).join("");
+      el.querySelectorAll(".popt").forEach(btn => {
+        btn.addEventListener("click", () => {
+          myVotes[poll.id] = +btn.dataset.i;
+          localStorage.setItem("fp-votes", JSON.stringify(myVotes));
+          (votes[poll.id] = votes[poll.id] || {})[myId] = myVotes[poll.id];
+          publishVote(poll.id);
+          vibrate(12);
+          renderPolls();
+        });
+      });
+      host.appendChild(el);
+    }
+    const v = votes[poll.id] || {};
+    const counts = poll.opts.map(() => 0);
+    for (const cid in v) counts[v[cid]]++;
+    const total = counts.reduce((s, n) => s + n, 0);
+    el.querySelectorAll(".popt").forEach((btn, i) => {
+      const pct = total ? Math.round((counts[i] / total) * 100) : 0;
+      btn.querySelector(".fill").style.transform = "scaleX(" + (pct / 100) + ")";
+      btn.querySelector("b").textContent = total ? pct + "% · " + counts[i] : "";
+      btn.classList.toggle("mine", myVotes[poll.id] === i);
+    });
+  }
+}
+for (const qid in myVotes) (votes[qid] = votes[qid] || {})[myId] = myVotes[qid];
+renderPolls();
 
 /* ---------------- join flow ---------------- */
 function renderCountryList(filter) {
