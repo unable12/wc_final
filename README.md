@@ -17,8 +17,8 @@ the most international crowds on earth — could see itself.
 - **Chant buttons** — GOOOOL! ⚽, VAMOS, ¡OLÉ!… presets that float up across
   every connected phone. (Deliberately no free-text chat: anonymous + zero
   moderation = no thanks.)
-- **QR share** — one tap shows a QR code so the person next to you joins in
-  five seconds.
+- **One-tap share** — opens the native share sheet (AirDrop on iOS) with the
+  link ready to fling at everyone around you.
 
 ## The trick: realtime with no server
 
