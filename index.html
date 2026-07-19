@@ -153,6 +153,15 @@
     display: flex; align-items: center; gap: 10px;
   }
   .citem:active { background: var(--card2); }
+  .side-btn {
+    width: 100%; margin-top: 12px; border: none; border-radius: 16px;
+    padding: 18px; font-size: 18px; font-weight: 800; color: #fff; cursor: pointer;
+    transition: transform .06s;
+  }
+  .side-btn:active { transform: scale(.96); }
+  .side-btn.sarg { background: linear-gradient(160deg, #3d7fb8, #2b5f8f); }
+  .side-btn.sesp { background: linear-gradient(160deg, #c93a33, #8f2721); }
+  .side-btn.sneutral { background: var(--card2); border: 1px solid #2a3459; font-size: 15px; font-weight: 700; }
   .close-btn {
     margin-top: 16px; background: var(--card2); color: var(--text); border: 1px solid #2a3459;
     border-radius: 12px; padding: 13px; font-size: 15px; font-weight: 700; cursor: pointer; width: 100%;
@@ -186,14 +195,14 @@
   <div class="chants" id="chants"></div>
 
   <div class="card">
-    <h2>🌍 Who's here</h2>
-    <div class="wall-stats"><span id="nfans">0</span> fans · <span id="ncountries">0</span> countries</div>
-    <div class="flags" id="flags"></div>
+    <h2>📊 Crowd polls</h2>
+    <div id="polls"></div>
   </div>
 
   <div class="card">
-    <h2>📊 Crowd polls</h2>
-    <div id="polls"></div>
+    <h2>🌍 Who's here</h2>
+    <div class="wall-stats"><span id="nfans">0</span> fans · <span id="ncountries">0</span> countries</div>
+    <div class="flags" id="flags"></div>
   </div>
 
   <button class="share-btn" id="btnshare">📲 AirDrop this to the crowd</button>
@@ -207,10 +216,19 @@
 <!-- Join overlay -->
 <div class="overlay" id="join">
   <div class="sheet">
-    <h1>Where are you watching from? 🌍</h1>
-    <p>Pick your country — it joins the wall live. No signup, nothing else to do.</p>
-    <input id="csearch" type="search" placeholder="Search country…" autocomplete="off">
-    <div class="clist" id="clist"></div>
+    <div id="jstep1">
+      <h1>Who are you rooting for? 🏆</h1>
+      <p>World Cup Final · pick your side.</p>
+      <button class="side-btn sarg" data-i="0">🇦🇷 Argentina</button>
+      <button class="side-btn sesp" data-i="1">🇪🇸 Spain</button>
+      <button class="side-btn sneutral" data-i="2">🍿 Just here for the football</button>
+    </div>
+    <div id="jstep2" style="display:none; flex-direction:column; min-height:0; flex:1">
+      <h1>Where are you from? 🌍</h1>
+      <p>Your flag joins the wall live. No signup, nothing else to do.</p>
+      <input id="csearch" type="search" placeholder="Search country…" autocomplete="off">
+      <div class="clist" id="clist"></div>
+    </div>
   </div>
 </div>
 
@@ -230,7 +248,6 @@ const POLLS = [
   { id: "side",  q: "Who are you rooting for?",   opts: ["🇦🇷 Argentina", "🇪🇸 Spain", "🍿 Just here for the football"] },
   { id: "end",   q: "How does it end?",           opts: ["🇦🇷 win in 90'", "🇪🇸 win in 90'", "Extra time", "Penalties 😬"] },
   { id: "goals", q: "Total goals today?",         opts: ["0–1", "2–3", "4+"] },
-  { id: "where", q: "Where are you watching?",    opts: ["🌳 Central Park", "🍺 A bar", "🛋️ Home", "🏟️ MetLife"] },
 ];
 
 /* ---------------- countries ---------------- */
@@ -462,6 +479,22 @@ function renderCountryList(filter) {
 }
 $("csearch").addEventListener("input", e => renderCountryList(e.target.value));
 renderCountryList("");
+
+document.querySelectorAll(".side-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const i = +btn.dataset.i;
+    myVotes.side = i;
+    localStorage.setItem("fp-votes", JSON.stringify(myVotes));
+    (votes.side = votes.side || {})[myId] = i;
+    publishVote("side");
+    renderPolls();
+    vibrate(15);
+    if (i < 2) floatUp(i === 0 ? "🇦🇷" : "🇪🇸", false);
+    $("jstep1").style.display = "none";
+    $("jstep2").style.display = "flex";
+  });
+});
+
 if (myCountry) { pins[myId] = myCountry; renderWall(); $("join").classList.add("hidden"); }
 
 /* ---------------- share (AirDrop via native share sheet) ---------------- */
