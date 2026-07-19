@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0b1020">
+<title>Fan Park · ARG vs ESP · World Cup Final</title>
+<meta name="description" content="Live crowd page for the 2026 World Cup Final — cheer, rep your country, no signup.">
+<style>
+  :root {
+    --bg: #0b1020;
+    --card: #151b30;
+    --card2: #1b2340;
+    --text: #eef1fb;
+    --muted: #8b93b8;
+    --arg: #6cace4;
+    --esp: #e4433c;
+    --gold: #f5c542;
+    --safe-b: env(safe-area-inset-bottom, 0px);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    overflow-x: hidden;
+    touch-action: manipulation;
+    -webkit-user-select: none; user-select: none;
+  }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 12px 14px calc(24px + var(--safe-b)); }
+
+  header { text-align: center; padding: 10px 0 4px; }
+  header .title { font-size: 13px; letter-spacing: 2.5px; color: var(--gold); font-weight: 700; text-transform: uppercase; }
+  header .match { font-size: 26px; font-weight: 800; margin-top: 4px; }
+  header .sub { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  #status { display:inline-block; width:8px; height:8px; border-radius:50%; background:#e4433c; margin-right:5px; vertical-align:1px; transition: background .3s; }
+  #status.on { background:#39d98a; }
+
+  /* Tug of war */
+  .tug { margin: 14px 0 8px; }
+  .tug-bar {
+    height: 26px; border-radius: 13px; overflow: hidden; display: flex;
+    background: var(--card); border: 1px solid #252d4d;
+  }
+  .tug-arg { background: linear-gradient(90deg, #4a90c9, var(--arg)); width: 50%; transition: width .4s ease; }
+  .tug-esp { background: linear-gradient(90deg, var(--esp), #b8322c); flex: 1; }
+  .tug-labels { display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; margin-top: 6px; }
+  .tug-labels .arg { color: var(--arg); }
+  .tug-labels .esp { color: var(--esp); }
+
+  /* Cheer buttons */
+  .cheer-row { display: flex; gap: 12px; margin: 10px 0 6px; }
+  .cheer {
+    flex: 1; border: none; border-radius: 20px; padding: 22px 8px 18px;
+    font-size: 17px; font-weight: 800; color: #fff; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    transition: transform .06s ease; position: relative;
+  }
+  .cheer:active { transform: scale(.94); }
+  .cheer .flag { font-size: 44px; line-height: 1; }
+  .cheer small { font-weight: 600; font-size: 11px; opacity: .85; }
+  .cheer.arg { background: linear-gradient(160deg, #3d7fb8, #2b5f8f); box-shadow: 0 6px 20px rgba(108,172,228,.25); }
+  .cheer.esp { background: linear-gradient(160deg, #c93a33, #8f2721); box-shadow: 0 6px 20px rgba(228,67,60,.25); }
+  .hint { text-align: center; font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+
+  /* Chants */
+  .chants { display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 10px; scrollbar-width: none; }
+  .chants::-webkit-scrollbar { display: none; }
+  .chant {
+    flex-shrink: 0; background: var(--card2); color: var(--text);
+    border: 1px solid #2a3459; border-radius: 999px; padding: 10px 16px;
+    font-size: 15px; font-weight: 700; cursor: pointer; transition: transform .06s;
+  }
+  .chant:active { transform: scale(.92); }
+
+  /* Flag wall */
+  .card { background: var(--card); border: 1px solid #232b4c; border-radius: 18px; padding: 16px; margin-top: 12px; }
+  .card h2 { font-size: 14px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+  .wall-stats { font-size: 22px; font-weight: 800; margin: 8px 0 12px; }
+  .wall-stats span { color: var(--gold); }
+  .flags { display: flex; flex-wrap: wrap; gap: 8px; }
+  .flagchip {
+    background: var(--card2); border: 1px solid #2a3459; border-radius: 12px;
+    padding: 7px 11px; font-size: 15px; display: flex; align-items: center; gap: 6px;
+    animation: pop .3s ease;
+  }
+  .flagchip b { font-size: 13px; color: var(--muted); }
+  @keyframes pop { from { transform: scale(.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+  .share-btn {
+    width: 100%; margin-top: 16px; background: var(--gold); color: #221a00;
+    border: none; border-radius: 16px; padding: 16px; font-size: 16px; font-weight: 800; cursor: pointer;
+  }
+  footer { text-align: center; font-size: 11px; color: var(--muted); margin-top: 18px; line-height: 1.6; }
+  footer a { color: var(--muted); }
+
+  /* Floating emoji layer */
+  #sky { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 50; }
+  .float {
+    position: absolute; bottom: -60px; font-size: 34px;
+    animation: rise linear forwards; will-change: transform, opacity;
+  }
+  .float.msg {
+    font-size: 15px; font-weight: 800; background: rgba(21,27,48,.92);
+    padding: 8px 14px; border-radius: 999px; border: 1px solid #2a3459; white-space: nowrap;
+  }
+  @keyframes rise {
+    0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+    80%  { opacity: 1; }
+    100% { transform: translateY(-105vh) rotate(14deg); opacity: 0; }
+  }
+
+  /* Overlays (join + QR) */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(5,8,18,.92); z-index: 100;
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  }
+  .overlay.hidden { display: none; }
+  .sheet {
+    background: var(--card); border: 1px solid #2a3459; border-radius: 22px;
+    padding: 22px; width: 100%; max-width: 400px; max-height: 84vh;
+    display: flex; flex-direction: column;
+  }
+  .sheet h1 { font-size: 20px; font-weight: 800; }
+  .sheet p { font-size: 13px; color: var(--muted); margin-top: 6px; }
+  .sheet input {
+    margin-top: 14px; width: 100%; background: var(--card2); border: 1px solid #2a3459;
+    border-radius: 12px; padding: 13px 14px; font-size: 16px; color: var(--text); outline: none;
+    -webkit-user-select: text; user-select: text;
+  }
+  .clist { margin-top: 10px; overflow-y: auto; flex: 1; min-height: 120px; }
+  .citem {
+    padding: 12px 10px; font-size: 16px; border-radius: 10px; cursor: pointer;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .citem:active { background: var(--card2); }
+  .qr-holder { background: #fff; border-radius: 16px; padding: 14px; margin: 16px auto 0; width: fit-content; }
+  .close-btn {
+    margin-top: 16px; background: var(--card2); color: var(--text); border: 1px solid #2a3459;
+    border-radius: 12px; padding: 13px; font-size: 15px; font-weight: 700; cursor: pointer; width: 100%;
+  }
+</style>
+</head>
+<body>
+<div id="sky"></div>
+
+<div class="wrap">
+  <header>
+    <div class="title">⚽ World Cup Final · Fan Park</div>
+    <div class="match">🇦🇷 ARG vs ESP 🇪🇸</div>
+    <div class="sub"><span id="status"></span><span id="statustext">connecting…</span> · MetLife Stadium · July 19, 2026</div>
+  </header>
+
+  <div class="tug">
+    <div class="tug-bar"><div class="tug-arg" id="tugarg"></div><div class="tug-esp"></div></div>
+    <div class="tug-labels">
+      <div class="arg">🇦🇷 <span id="cntarg">0</span></div>
+      <div class="esp"><span id="cntesp">0</span> 🇪🇸</div>
+    </div>
+  </div>
+
+  <div class="cheer-row">
+    <button class="cheer arg" id="btnarg"><span class="flag">🇦🇷</span>VAMOS<small>tap to cheer</small></button>
+    <button class="cheer esp" id="btnesp"><span class="flag">🇪🇸</span>VAMOS<small>tap to cheer</small></button>
+  </div>
+  <div class="hint">every tap counts — the whole crowd sees the bar move</div>
+
+  <div class="chants" id="chants"></div>
+
+  <div class="card">
+    <h2>🌍 Who's here</h2>
+    <div class="wall-stats"><span id="nfans">0</span> fans · <span id="ncountries">0</span> countries</div>
+    <div class="flags" id="flags"></div>
+  </div>
+
+  <button class="share-btn" id="btnshare">📲 Show QR — get friends in</button>
+
+  <footer>
+    no signup · no server · open source<br>
+    <a href="https://github.com/unable12/wc_final" target="_blank" rel="noopener">github.com/unable12/wc_final</a>
+  </footer>
+</div>
+
+<!-- Join overlay -->
+<div class="overlay" id="join">
+  <div class="sheet">
+    <h1>Where are you watching from? 🌍</h1>
+    <p>Pick your country — it joins the wall live. No signup, nothing else to do.</p>
+    <input id="csearch" type="search" placeholder="Search country…" autocomplete="off">
+    <div class="clist" id="clist"></div>
+  </div>
+</div>
+
+<!-- QR overlay -->
+<div class="overlay hidden" id="qro">
+  <div class="sheet" style="text-align:center">
+    <h1>Scan to join 📲</h1>
+    <p>Point a camera here — they're in, in 5 seconds.</p>
+    <div class="qr-holder"><div id="qrcode"></div></div>
+    <button class="close-btn" id="qrclose">Close</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mqtt@5.10.1/dist/mqtt.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs@master/qrcode.min.js"></script>
+<script>
+"use strict";
+
+/* ---------------- config ---------------- */
+const NS = "fanpark-wc2026-final";          // topic namespace
+const BROKERS = [                            // public brokers, tried in order
+  "wss://broker.emqx.io:8084/mqtt",
+  "wss://broker.hivemq.com:8884/mqtt",
+  "wss://test.mosquitto.org:8081/mqtt",
+];
+const CHANTS = ["GOOOOOL! ⚽", "VAMOS 🇦🇷", "¡OLÉ! 🇪🇸", "😱😱😱", "What a save! 🧤", "OLE OLE OLE 🎶", "🍿", "❤️ from the park"];
+
+/* ---------------- countries ---------------- */
+const COUNTRIES = ("AR:Argentina,ES:Spain,US:United States,MX:Mexico,BR:Brazil,CO:Colombia,PE:Peru,CL:Chile,UY:Uruguay,EC:Ecuador,VE:Venezuela,BO:Bolivia,PY:Paraguay,CR:Costa Rica,PA:Panama,GT:Guatemala,HN:Honduras,SV:El Salvador,NI:Nicaragua,DO:Dominican Republic,CU:Cuba,JM:Jamaica,HT:Haiti,TT:Trinidad & Tobago,CA:Canada,GB:United Kingdom,IE:Ireland,FR:France,DE:Germany,IT:Italy,PT:Portugal,NL:Netherlands,BE:Belgium,CH:Switzerland,AT:Austria,PL:Poland,UA:Ukraine,RO:Romania,CZ:Czechia,SK:Slovakia,HU:Hungary,GR:Greece,SE:Sweden,NO:Norway,DK:Denmark,FI:Finland,IS:Iceland,HR:Croatia,RS:Serbia,BA:Bosnia,SI:Slovenia,MK:North Macedonia,AL:Albania,BG:Bulgaria,TR:Türkiye,RU:Russia,GE:Georgia,AM:Armenia,IL:Israel,PS:Palestine,LB:Lebanon,JO:Jordan,SY:Syria,IQ:Iraq,IR:Iran,SA:Saudi Arabia,AE:UAE,QA:Qatar,KW:Kuwait,BH:Bahrain,OM:Oman,YE:Yemen,EG:Egypt,MA:Morocco,DZ:Algeria,TN:Tunisia,LY:Libya,SN:Senegal,CI:Ivory Coast,GH:Ghana,NG:Nigeria,CM:Cameroon,CD:DR Congo,ET:Ethiopia,KE:Kenya,TZ:Tanzania,UG:Uganda,ZA:South Africa,ZW:Zimbabwe,AO:Angola,MZ:Mozambique,ML:Mali,BF:Burkina Faso,GN:Guinea,CV:Cape Verde,GM:Gambia,TG:Togo,BJ:Benin,NE:Niger,TD:Chad,SD:Sudan,RW:Rwanda,ZM:Zambia,IN:India,PK:Pakistan,BD:Bangladesh,LK:Sri Lanka,NP:Nepal,CN:China,JP:Japan,KR:South Korea,TW:Taiwan,HK:Hong Kong,PH:Philippines,ID:Indonesia,MY:Malaysia,SG:Singapore,TH:Thailand,VN:Vietnam,KH:Cambodia,MM:Myanmar,UZ:Uzbekistan,KZ:Kazakhstan,AZ:Azerbaijan,AU:Australia,NZ:New Zealand,FJ:Fiji,LT:Lithuania,LV:Latvia,EE:Estonia,BY:Belarus,MD:Moldova,ME:Montenegro,XK:Kosovo,LU:Luxembourg,MT:Malta,CY:Cyprus,AF:Afghanistan,MN:Mongolia,LA:Laos,BT:Bhutan,MV:Maldives,BN:Brunei,PG:Papua New Guinea,SR:Suriname,GY:Guyana,BZ:Belize,BS:Bahamas,BB:Barbados,LC:St. Lucia,GD:Grenada,MU:Mauritius,MG:Madagascar,NA:Namibia,BW:Botswana,GA:Gabon,CG:Congo,SL:Sierra Leone,LR:Liberia,MR:Mauritania,SO:Somalia,ER:Eritrea,DJ:Djibouti,SS:South Sudan,MW:Malawi,LS:Lesotho,SZ:Eswatini")
+  .split(",").map(s => { const [code, name] = s.split(":"); return { code, name }; });
+
+function flagOf(code) {
+  return code.toUpperCase().replace(/./g, c => String.fromCodePoint(127397 + c.charCodeAt(0)));
+}
+
+/* ---------------- state ---------------- */
+const myId = localStorage.getItem("fp-id") || ("u" + Math.random().toString(36).slice(2, 10));
+localStorage.setItem("fp-id", myId);
+let myCountry = localStorage.getItem("fp-country") || null;
+
+let client = null, connected = false, brokerIdx = 0;
+const taps = {};                 // clientId -> {a, e}
+const pins = {};                 // clientId -> country code
+let myTaps = { a: 0, e: 0 };
+let tapsDirty = false;
+
+/* ---------------- dom helpers ---------------- */
+const $ = id => document.getElementById(id);
+const sky = $("sky");
+
+function floatUp(content, isMsg) {
+  if (sky.childElementCount > 40) return;      // sanity cap
+  const el = document.createElement("div");
+  el.className = "float" + (isMsg ? " msg" : "");
+  el.textContent = content;
+  el.style.left = (8 + Math.random() * 76) + "%";
+  el.style.animationDuration = (3.4 + Math.random() * 2) + "s";
+  el.addEventListener("animationend", () => el.remove());
+  sky.appendChild(el);
+}
+
+function vibrate(ms) { if (navigator.vibrate) navigator.vibrate(ms); }
+
+/* ---------------- render ---------------- */
+function renderCounts() {
+  let a = 0, e = 0;
+  for (const id in taps) { a += taps[id].a || 0; e += taps[id].e || 0; }
+  $("cntarg").textContent = a.toLocaleString();
+  $("cntesp").textContent = e.toLocaleString();
+  const total = a + e;
+  $("tugarg").style.width = (total ? (a / total) * 100 : 50) + "%";
+}
+
+function renderWall() {
+  const byCountry = {};
+  for (const id in pins) byCountry[pins[id]] = (byCountry[pins[id]] || 0) + 1;
+  const entries = Object.entries(byCountry).sort((x, y) => y[1] - x[1]);
+  $("nfans").textContent = Object.keys(pins).length;
+  $("ncountries").textContent = entries.length;
+  const wall = $("flags");
+  wall.innerHTML = "";
+  for (const [code, n] of entries) {
+    const chip = document.createElement("div");
+    chip.className = "flagchip";
+    chip.innerHTML = flagOf(code) + (n > 1 ? " <b>×" + n + "</b>" : "");
+    wall.appendChild(chip);
+  }
+}
+
+/* ---------------- mqtt ---------------- */
+function setStatus(on, text) {
+  connected = on;
+  $("status").className = on ? "on" : "";
+  $("statustext").textContent = text;
+}
+
+function connect() {
+  const url = BROKERS[brokerIdx % BROKERS.length];
+  setStatus(false, "connecting…");
+  client = mqtt.connect(url, {
+    clientId: NS + "-" + myId + "-" + Math.random().toString(36).slice(2, 6),
+    clean: true, connectTimeout: 6000, reconnectPeriod: 0, keepalive: 30,
+  });
+
+  client.on("connect", () => {
+    setStatus(true, "live");
+    client.subscribe([NS + "/taps/#", NS + "/pins/#", NS + "/burst", NS + "/chant"]);
+    if (myCountry) publishPin();
+    if (myTaps.a || myTaps.e) publishTaps();
+  });
+
+  let dead = false;
+  const fail = () => {
+    if (dead) return;
+    dead = true;
+    if (client) { client.end(true); client = null; }
+    setStatus(false, "reconnecting…");
+    brokerIdx++;
+    setTimeout(connect, 1500);
+  };
+  client.on("close", fail);
+  client.on("error", () => {});
+
+  client.on("message", (topic, payload) => {
+    try {
+      const t = topic.slice(NS.length + 1);
+      if (t.startsWith("taps/")) {
+        const d = JSON.parse(payload);
+        taps[t.slice(5)] = { a: Math.min(d.a | 0, 1e6), e: Math.min(d.e | 0, 1e6) };
+        renderCounts();
+      } else if (t.startsWith("pins/")) {
+        const code = String(payload).slice(0, 2).toUpperCase();
+        if (/^[A-Z]{2}$/.test(code)) { pins[t.slice(5)] = code; renderWall(); }
+      } else if (t === "burst") {
+        const d = JSON.parse(payload);
+        if (d.id !== myId) floatUp(d.t === "a" ? "🇦🇷" : "🇪🇸", false);
+      } else if (t === "chant") {
+        const d = JSON.parse(payload);
+        if (d.id !== myId && CHANTS.includes(d.c)) floatUp(d.c, true);
+      }
+    } catch (e) { /* ignore malformed */ }
+  });
+}
+
+function pub(topic, payload, retain) {
+  if (client && connected) client.publish(NS + "/" + topic, payload, { retain: !!retain, qos: 0 });
+}
+function publishPin()  { pub("pins/" + myId, myCountry, true); }
+function publishTaps() { pub("taps/" + myId, JSON.stringify(myTaps), true); tapsDirty = false; }
+setInterval(() => { if (tapsDirty) publishTaps(); }, 600);
+
+/* ---------------- cheer ---------------- */
+let lastBurst = 0;
+function cheer(team) {
+  myTaps[team]++; tapsDirty = true;
+  taps[myId] = { ...myTaps };
+  renderCounts();
+  floatUp(team === "a" ? "🇦🇷" : "🇪🇸", false);
+  vibrate(12);
+  const now = Date.now();
+  if (now - lastBurst > 250) {           // throttle network bursts
+    lastBurst = now;
+    pub("burst", JSON.stringify({ id: myId, t: team }));
+  }
+}
+$("btnarg").addEventListener("click", () => cheer("a"));
+$("btnesp").addEventListener("click", () => cheer("e"));
+
+/* ---------------- chants ---------------- */
+let lastChant = 0;
+for (const c of CHANTS) {
+  const b = document.createElement("button");
+  b.className = "chant"; b.textContent = c;
+  b.addEventListener("click", () => {
+    const now = Date.now();
+    if (now - lastChant < 1200) return;  // rate limit
+    lastChant = now;
+    floatUp(c, true); vibrate(18);
+    pub("chant", JSON.stringify({ id: myId, c }));
+  });
+  $("chants").appendChild(b);
+}
+
+/* ---------------- join flow ---------------- */
+function renderCountryList(filter) {
+  const list = $("clist");
+  list.innerHTML = "";
+  const f = (filter || "").toLowerCase();
+  for (const { code, name } of COUNTRIES) {
+    if (f && !name.toLowerCase().includes(f)) continue;
+    const item = document.createElement("div");
+    item.className = "citem";
+    item.innerHTML = "<span style='font-size:24px'>" + flagOf(code) + "</span> " + name;
+    item.addEventListener("click", () => {
+      myCountry = code;
+      localStorage.setItem("fp-country", code);
+      pins[myId] = code;
+      renderWall(); publishPin();
+      $("join").classList.add("hidden");
+      floatUp(flagOf(code), false);
+    });
+    list.appendChild(item);
+  }
+}
+$("csearch").addEventListener("input", e => renderCountryList(e.target.value));
+renderCountryList("");
+if (myCountry) { pins[myId] = myCountry; renderWall(); $("join").classList.add("hidden"); }
+
+/* ---------------- QR share ---------------- */
+let qrMade = false;
+$("btnshare").addEventListener("click", () => {
+  $("qro").classList.remove("hidden");
+  if (!qrMade && window.QRCode) {
+    new QRCode($("qrcode"), { text: location.href, width: 200, height: 200, correctLevel: QRCode.CorrectLevel.M });
+    qrMade = true;
+  }
+});
+$("qrclose").addEventListener("click", () => $("qro").classList.add("hidden"));
+
+/* ---------------- go ---------------- */
+connect();
+renderCounts();
+</script>
+</body>
+</html>
